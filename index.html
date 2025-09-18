@@ -1,0 +1,450 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>NeuraX — English-only Voice AI Chatbot</title>
+<style>
+  :root{
+    --bg:#eef8ff;
+    --panel:#ffffff;
+    --muted:#6b7280;
+    --accent-1:#3aa0ff;
+    --accent-2:#6bd3ff;
+    --text:#072034;
+    --radius:14px;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial;
+    background: linear-gradient(180deg,#eaf9ff 0%, #f6fbff 100%);
+    color:var(--text); display:flex;align-items:center;justify-content:center;
+    padding:18px;
+    background-image: url('data:image/svg+xml,%3Csvg width="100" height="100" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"%3E%3Ccircle cx="50" cy="50" r="50" fill="%23DFF6FF" fill-opacity="0.1"/%3E%3C/svg%3E');
+  }
+
+  .app{width:100%; max-width:1080px; height:92vh; display:grid; grid-template-columns:320px 1fr; gap:18px;}
+  /* SIDEBAR */
+  .sidebar{
+    background:var(--panel);
+    border-radius:var(--radius);
+    padding:12px;
+    box-shadow:0 10px 30px rgba(2,6,23,0.06);
+    display:flex;flex-direction:column; gap:10px; overflow:auto;
+  }
+  .brand{display:flex;gap:10px;align-items:center}
+  .logo{width:48px;height:48px;border-radius:10px;background:linear-gradient(135deg,var(--accent-1),var(--accent-2));display:grid;place-items:center;color:white;font-weight:700}
+  h1{font-size:18px;margin:0}
+  .muted{color:var(--muted);font-size:13px}
+  .btn{padding:8px 10px;border-radius:10px;border:none;cursor:pointer;background:linear-gradient(90deg,var(--accent-1),var(--accent-2));color:white;font-weight:600}
+  .btn.ghost{background:transparent;border:1px solid rgba(7,32,52,0.06);color:var(--text)}
+  .small{padding:6px 8px;font-size:13px}
+
+  /* NOTE: replaced white gradient with bluish panel for section backgrounds */
+  .section{
+    /* previously had white gradient — replaced with subtle bluish tone */
+    background: linear-gradient(180deg, rgba(58,160,255,0.09), rgba(107,211,255,0.03));
+    padding:10px; border-radius:10px;
+    border: 1px solid rgba(58,160,255,0.06);
+  }
+
+  .history-list{display:flex;flex-direction:column;gap:6px;max-height:36vh;overflow:auto;padding-right:6px}
+  .hist-item{display:flex;justify-content:space-between;align-items:center;padding:8px;border-radius:8px;background:rgba(2,6,23,0.02);cursor:pointer}
+  .panel{
+    background:var(--panel);
+    border-radius:var(--radius);
+    padding:12px;
+    box-shadow:0 10px 30px rgba(2,6,23,0.06);
+    display:flex;flex-direction:column; overflow:hidden;
+  }
+  .panel-top{display:flex;justify-content:space-between;align-items:center;gap:10px}
+  .avatar{width:48px;height:48px;border-radius:12px;background:linear-gradient(135deg,var(--accent-2),var(--accent-1));display:grid;place-items:center;color:white;font-weight:700;font-size:18px}
+
+  /* CHAT AREA — removed white gradient, replaced with bluish subtle background */
+  .chat-area{
+    flex:1;margin-top:12px;padding:12px;border-radius:12px;
+    background: linear-gradient(180deg, rgba(58,160,255,0.03), rgba(107,211,255,0.01));
+    overflow:auto;display:flex;flex-direction:column;gap:10px;
+  }
+
+  .msg{max-width:78%;padding:10px 14px;border-radius:12px;font-size:14px;line-height:1.45;box-shadow:0 6px 18px rgba(2,6,23,0.03);}
+  .msg.user{align-self:flex-end;background:linear-gradient(90deg,#dff6ff,#e8fbff)}
+  .msg.bot{align-self:flex-start;background:#fff;border:1px solid rgba(58,160,255,0.06)}
+  .msg .meta{font-size:11px;color:var(--muted);margin-bottom:6px}
+  .typing{display:flex;gap:6px;align-items:center}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--accent-1);opacity:0.25;animation:pop 1s infinite}
+  .dot:nth-child(2){animation-delay:.15s} .dot:nth-child(3){animation-delay:.3s}
+  @keyframes pop{0%{transform:scale(.6);opacity:.2}50%{transform:scale(1);opacity:1}100%{transform:scale(.6);opacity:.2}}
+
+  .composer{display:flex;gap:8px;padding:10px;border-top:1px solid rgba(2,6,23,0.03);align-items:center}
+  .input{flex:1;padding:10px;border-radius:12px;border:1px solid rgba(2,6,23,0.06);font-size:15px}
+  .icon-btn{width:44px;height:44px;border-radius:10px;border:none;background:rgba(7,32,52,0.04);display:grid;place-items:center;cursor:pointer}
+  .mic-active{background:linear-gradient(90deg,var(--accent-1),var(--accent-2));color:white}
+  .small-muted{font-size:12px;color:var(--muted)}
+  .footer{padding:8px;text-align:center;color:var(--muted);font-size:13px}
+  @media (max-width:900px){ .app{grid-template-columns:1fr; height:96vh} .sidebar{order:2} .panel{order:1} }
+
+  /* DARK THEME adjustments: keep bluish feel but darker */
+  :root.dark{
+    --bg:#071022; --panel:#071427; --muted:#94a3b8; --text:#e6f0ff;
+    background: linear-gradient(180deg,#041225 0%, #071022 100%);
+  }
+  :root.dark .panel, :root.dark .sidebar{background:var(--panel)}
+  :root.dark .chat-area{
+    background: linear-gradient(180deg, rgba(10,50,80,0.12), rgba(7,20,34,0.03));
+  }
+  :root.dark .section{
+    background: linear-gradient(180deg, rgba(20,80,120,0.12), rgba(10,40,70,0.04));
+    border: 1px solid rgba(107,189,255,0.06);
+  }
+  :root.dark .msg.user{background:linear-gradient(90deg,#073a54,#054b6f);color:var(--text)}
+  :root.dark .msg.bot{background:#052433;color:var(--text);border:1px solid rgba(107,189,255,0.06)}
+  :root.dark .input{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.04);color:var(--text)}
+  :root.dark .muted{color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="app" id="appRoot">
+  <aside class="sidebar" aria-label="Controls & History">
+    <div class="brand">
+      <div class="logo">NX</div>
+      <div>
+        <h1>NeuraX</h1>
+        <div class="muted">English-only voice assistant — demo</div>
+      </div>
+    </div>
+
+    <div class="section controls-block" style="gap:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div class="small-muted">Voice Assistant</div>
+          <strong>Click to enable voice features</strong>
+        </div>
+        <button id="enableVoiceBtn" class="btn small">Enable</button>
+      </div>
+
+      <div style="display:flex;gap:8px;align-items:center">
+        <button id="micBtn" class="icon-btn" title="Use speech input (single-shot)">🎤</button>
+        <button id="micToggleBtn" class="icon-btn" title="Toggle continuous listening">🎙️</button>
+        <button id="stopAllBtn" class="icon-btn" title="Stop speech">⏹️</button>
+      </div>
+
+      <div style="display:flex;gap:8px;align-items:center">
+        <button id="exportBtn" class="btn small ghost">Export</button>
+        <button id="importBtn" class="btn small ghost">Import</button>
+      </div>
+
+      <div style="display:flex;gap:8px;align-items:center">
+        <label class="small-muted">TTS Pitch</label>
+        <input id="pitch" type="range" min="0.7" max="2.0" step="0.1" value="1.3" />
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <label class="small-muted">TTS Rate</label>
+        <input id="rate" type="range" min="0.7" max="1.5" step="0.05" value="1.0" />
+      </div>
+
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div class="small-muted">Mode</div>
+          <select id="botMode" style="padding:6px;border-radius:8px">
+            <option value="local">Local demo AI (no API)</option>
+            <option value="api">API mode (requires backend)</option>
+          </select>
+        </div>
+        <button id="clearHist" class="btn small ghost">Clear History</button>
+      </div>
+
+      <textarea id="systemPrompt" rows="3" placeholder="System prompt (optional, used only in API mode)" style="width:100%;border-radius:8px;padding:8px"></textarea>
+      <div class="small-muted">Tip: For GPT-quality replies use a backend proxy to OpenAI and select API mode.</div>
+    </div>
+
+    <div class="section" style="padding:8px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <strong>Conversation History</strong>
+        <div class="muted" id="histCount">0</div>
+      </div>
+      <div class="history-list" id="historyList" aria-live="polite"></div>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button id="clearAllBtn" class="btn small ghost">Delete All</button>
+      </div>
+    </div>
+
+    <div class="footer">Made by Biradar Swapnil</div>
+  </aside>
+
+  <main class="panel" role="main">
+    <div class="panel-top">
+      <div class="panel-title">
+        <div class="avatar">AI</div>
+        <div>
+          <div style="font-weight:700">NeuraX Assistant</div>
+          <div class="muted" id="assistantStatus">Offline • Voice disabled</div>
+        </div>
+      </div>
+
+      <div class="panel-actions">
+        <button id="themeToggle" class="icon-btn" title="Toggle dark mode">🌙</button>
+        <button id="deleteLast" class="icon-btn" title="Delete last message">🗑️</button>
+      </div>
+    </div>
+
+    <div class="chat-area" id="chatArea" role="log" aria-live="polite"></div>
+
+    <form id="composer" class="composer" onsubmit="return false" aria-label="Message composer">
+      <input id="inputBox" class="input" placeholder="Type your message in English..." />
+      <button id="sendBtn" class="btn">Send</button>
+      <button id="micShortcut" class="icon-btn" title="Quick mic (single-shot)">🎤</button>
+    </form>
+  </main>
+</div>
+
+<script>
+/* NeuraX — English-only assistant enhancements (unchanged logic)
+   Only CSS colors/backgrounds changed to remove white gradient and use bluish look.
+   Rest of JavaScript kept the same as previous working version.
+*/
+
+const LS_KEY = 'neurax_chat_v3';
+const chatArea = document.getElementById('chatArea');
+const historyList = document.getElementById('historyList');
+const histCount = document.getElementById('histCount');
+
+let state = {
+  voiceEnabled: false,
+  voices: [],
+  selectedVoice: null,
+  pitch: parseFloat(document.getElementById('pitch').value),
+  rate: parseFloat(document.getElementById('rate').value),
+  botMode: document.getElementById('botMode').value,
+  history: JSON.parse(localStorage.getItem(LS_KEY) || '[]'),
+  listeningContinuous: false,
+  recognition: null,
+};
+
+function saveHistory(){ localStorage.setItem(LS_KEY, JSON.stringify(state.history)); renderHistoryList(); renderChatArea(); }
+function pushMessage(role, text){ state.history.push({role, text, ts: Date.now()}); saveHistory(); }
+function escapeHtml(s){ return String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;'); }
+
+function renderChatArea(){
+  chatArea.innerHTML = '';
+  state.history.forEach(m=>{
+    const el = document.createElement('div');
+    el.className = 'msg ' + (m.role === 'user' ? 'user' : 'bot');
+    const time = new Date(m.ts).toLocaleTimeString();
+    el.innerHTML = `<div class="meta">${m.role === 'user' ? 'You' : 'Assistant'} • <span class="small-muted">${time}</span></div>
+                    <div class="body">${escapeHtml(m.text)}</div>`;
+    chatArea.appendChild(el);
+  });
+  chatArea.scrollTop = chatArea.scrollHeight;
+}
+function renderHistoryList(){
+  historyList.innerHTML = '';
+  histCount.textContent = state.history.length;
+  state.history.slice().reverse().forEach((h, idx) => {
+    const item = document.createElement('div');
+    item.className = 'hist-item';
+    const preview = (h.text.length>60) ? h.text.slice(0,57)+'...' : h.text;
+    const t = new Date(h.ts).toLocaleString();
+    item.innerHTML = `<div><div class="t">${escapeHtml(preview)}</div><div class="meta">${h.role} • ${t}</div></div>
+                      <div style="display:flex;flex-direction:column;gap:6px">
+                        <button class="small ghost" data-idx="${state.history.length-1-idx}" title="Replay">▶</button>
+                        <button class="small ghost" data-del="${state.history.length-1-idx}" title="Delete">✖</button>
+                      </div>`;
+    historyList.appendChild(item);
+  });
+  historyList.querySelectorAll('button[data-idx]').forEach(b=> b.onclick = ()=> replayMessage(parseInt(b.getAttribute('data-idx'))));
+  historyList.querySelectorAll('button[data-del]').forEach(b=> b.onclick = ()=> { const i=parseInt(b.getAttribute('data-del')); if(!isNaN(i)){ state.history.splice(i,1); saveHistory(); renderChatArea(); }});
+}
+
+function loadVoices(){
+  const all = speechSynthesis.getVoices() || [];
+  state.voices = all;
+  const prefer = ['google us english','google uk english female','samantha','zira','karen','alloy','amelie','fiona'];
+  state.selectedVoice = all.find(v => v.lang && v.lang.toLowerCase().startsWith('en') && prefer.some(p => v.name.toLowerCase().includes(p))) || all.find(v=>v.lang && v.lang.startsWith('en')) || all[0] || null;
+}
+if('speechSynthesis' in window){ window.speechSynthesis.onvoiceschanged = loadVoices; loadVoices(); }
+
+function speak(text){
+  if(!state.voiceEnabled) return;
+  if(!('speechSynthesis' in window)) return;
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = 'en-US';
+  u.pitch = state.pitch;
+  u.rate = state.rate;
+  if(state.selectedVoice) u.voice = state.selectedVoice;
+  window.speechSynthesis.speak(u);
+}
+
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition || null;
+function initRecognition(){
+  if(!SpeechRecognition) return null;
+  const r = new SpeechRecognition();
+  r.lang = 'en-US';
+  r.interimResults = false;
+  r.maxAlternatives = 1;
+  r.onstart = ()=> setStatus('Listening...');
+  r.onerror = (e)=> { console.warn('Recognition error', e); setStatus('Recognition error'); }
+  r.onend = ()=> {
+    if(state.listeningContinuous){ try{ r.start(); }catch(e){} } else { setStatus(state.voiceEnabled ? 'Voice enabled' : 'Voice disabled'); }
+  };
+  r.onresult = (ev)=> {
+    const t = ev.results[0][0].transcript;
+    pushMessage('user', t);
+    processUserMessage(t);
+  };
+  return r;
+}
+
+function showTyping(){ const el=document.createElement('div'); el.className='typing'; el.id='typingIndicator'; el.innerHTML=`<div class="dot"></div><div class="dot"></div><div class="dot"></div><div style="margin-left:8px;color:var(--muted)">Assistant is typing…</div>`; chatArea.appendChild(el); chatArea.scrollTop = chatArea.scrollHeight; }
+function hideTyping(){ const el=document.getElementById('typingIndicator'); if(el) el.remove(); }
+
+function lastUserMessages(n=3){ return state.history.filter(h=>h.role==='user').slice(-n).map(x=>x.text); }
+
+function generateSmartReply(input){
+  const text = String(input || '').trim();
+  const lower = text.toLowerCase();
+  if(!text) return "Please type something in English and I'll help.";
+  if(lower === 'help') return "You can ask me to explain things, get short guides, ask for time, or say 'clear history'. Try: 'How does DNS work?' or 'Give me 3 tips to learn Python.'";
+  if(lower.includes('time')) return `Current time: ${new Date().toLocaleString()}.`;
+  if(lower.includes('about')) return "I am NeuraX — a local demo assistant. I respond in English and keep conversation history locally. For GPT-quality replies, switch to API mode with a secure backend.";
+  if(lower.includes('joke')) return "Here you go: Why did the developer go broke? Because he used up all his cache. 😄";
+  if(lower.includes('clear history')) { state.history = []; saveHistory(); return "Your conversation history has been cleared. You're starting fresh now."; }
+  const questionWords = ['how','what','why','when','where','who','which'];
+  const isQuestion = text.endsWith('?') || questionWords.some(w => lower.startsWith(w + ' '));
+  if(lower.startsWith('what is ') || lower.startsWith('define ')){
+    const subject = text.replace(/^what is\s*/i,'').replace(/^define\s*/i,'').trim();
+    if(subject.length < 1) return "What would you like me to define? Please mention the topic in English.";
+    return `Here is a brief definition of "${subject}":\n\n${shortDefinition(subject)}\n\nWould you like a short example or a simple list of steps?`;
+  }
+  if(lower.startsWith('how to ') || lower.startsWith('how do i ') || lower.startsWith('how can i ')){
+    const task = text.replace(/^(how to|how do i|how can i)\s*/i,'').trim();
+    return `Steps to ${task} (short & practical):\n1. Understand the goal.\n2. Prepare necessary tools or knowledge.\n3. Try a simple first step.\n4. Iterate and improve. \n\nTell me if you want this expanded into a step-by-step guide.`;
+  }
+  if(isQuestion){
+    return generateAnswerForQuestion(text);
+  }
+  if(text.length < 40){
+    return `Thanks — I heard: "${text}". Can you share a bit more detail or tell me what you'd like me to do with this? For example: 'Explain', 'Give steps', or 'Summarize'.`;
+  }
+  return `Thanks for the details. Quick summary:\n- ${summaryOf(text)}\n\nWould you like: (A) a short explanation, (B) step-by-step instructions, or (C) examples? Reply A/B/C or ask directly.`;
+}
+
+function shortDefinition(subject){
+  const s = subject.toLowerCase();
+  if(s.includes('dns')) return "DNS (Domain Name System) maps domain names (like example.com) to IP addresses so browsers can load websites.";
+  if(s.includes('http') || s.includes('https')) return "HTTP(S) is the protocol used to transfer web pages; HTTPS is the secure version using encryption.";
+  if(s.includes('python')) return "Python is a high-level programming language that's easy to read, widely used for scripting, web development, data science, and automation.";
+  return `A concise description of ${subject}: a topic with multiple aspects; tell me if you want a short definition, examples, or steps to learn it.`;
+}
+function summaryOf(text){
+  const sentences = text.split(/[.?!]\s*/).filter(Boolean);
+  if(sentences.length === 1) return sentences[0].slice(0,120);
+  return sentences.slice(0,2).map(s => s.trim()).join(' — ');
+}
+function generateAnswerForQuestion(q){
+  const lower = q.toLowerCase();
+  if(lower.includes('difference between') || lower.includes('vs ')) {
+    return "Here's a short comparison:\n1) Key difference: ...\n2) When to use each: ...\nIf you give the two items, I will fill the details.";
+  }
+  if(lower.includes('how to learn') || lower.includes('how do i learn')){
+    return "Practical plan:\n1) Start with fundamentals (30-60 mins daily).\n2) Build small projects.\n3) Read code and ask questions. \nTell me the subject and I will create a 4-week plan.";
+  }
+  return `Good question: "${q}". Here is a concise answer:\n- Main idea: ...\n- Key steps / facts: ...\n\nWould you like a fuller explanation, examples, or a step-by-step plan?`;
+}
+
+function processUserMessage(text){
+  showTyping();
+  setTimeout(()=>{
+    hideTyping();
+    const reply = generateSmartReply(text);
+    pushMessage('bot', reply);
+    speak(reply);
+  }, 600 + Math.random()*900);
+}
+
+function replayMessage(idx){
+  const m = state.history[idx];
+  if(!m) return;
+  if(m.role === 'user') processUserMessage(m.text);
+  else speak(m.text);
+}
+
+document.getElementById('enableVoiceBtn').addEventListener('click', ()=>{
+  state.voiceEnabled = true;
+  document.getElementById('enableVoiceBtn').textContent = 'Enabled';
+  document.getElementById('enableVoiceBtn').disabled = true;
+  loadVoices();
+  setStatus('Voice enabled • English (en-US)');
+  if(!state.recognition && (window.SpeechRecognition || window.webkitSpeechRecognition)) state.recognition = initRecognition();
+});
+
+document.getElementById('micBtn').addEventListener('click', ()=>{
+  if(!state.voiceEnabled){ alert('Click Enable first to activate voice features'); return; }
+  if(!state.recognition){ if(!initRecognition()){ alert('Speech Recognition not supported in this browser. Try Chrome/Edge.'); return; } state.recognition = initRecognition(); }
+  try { state.recognition.start(); } catch(e){ try{ state.recognition.stop(); state.recognition.start(); }catch(_){} }
+});
+
+document.getElementById('micToggleBtn').addEventListener('click', ()=>{
+  if(!state.voiceEnabled){ alert('Enable voice first'); return; }
+  if(!state.recognition && (window.SpeechRecognition || window.webkitSpeechRecognition)) state.recognition = initRecognition();
+  state.listeningContinuous = !state.listeningContinuous;
+  if(state.listeningContinuous){ try{ state.recognition.start(); setStatus('Continuous listening… (en-US)'); document.getElementById('micToggleBtn').classList.add('mic-active'); } catch(e){ setStatus('Could not start continuous listening'); } }
+  else { try{ state.recognition.stop(); }catch(e){} setStatus('Voice enabled'); document.getElementById('micToggleBtn').classList.remove('mic-active'); }
+});
+
+document.getElementById('stopAllBtn').addEventListener('click', ()=>{ if('speechSynthesis' in window) window.speechSynthesis.cancel(); if(state.recognition) try{ state.recognition.stop(); }catch(e){} setStatus(state.voiceEnabled ? 'Voice enabled' : 'Voice disabled'); });
+
+document.getElementById('sendBtn').addEventListener('click', ()=>{
+  const v = document.getElementById('inputBox').value.trim();
+  if(!v) return;
+  pushMessage('user', v);
+  document.getElementById('inputBox').value = '';
+  processUserMessage(v);
+});
+
+document.getElementById('inputBox').addEventListener('keydown', (e)=>{ if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); document.getElementById('sendBtn').click(); } });
+
+document.getElementById('micShortcut').addEventListener('click', ()=> document.getElementById('micBtn').click());
+
+document.getElementById('pitch').addEventListener('input', (e)=>{ state.pitch = parseFloat(e.target.value); });
+document.getElementById('rate').addEventListener('input', (e)=>{ state.rate = parseFloat(e.target.value); });
+
+document.getElementById('botMode').addEventListener('change', (e)=>{ state.botMode = e.target.value; });
+
+document.getElementById('clearHist').addEventListener('click', ()=>{ if(confirm('Clear conversation history?')){ state.history = []; saveHistory(); renderChatArea(); }});
+document.getElementById('clearAllBtn').addEventListener('click', ()=>{ if(confirm('Delete all conversation data from this browser?')){ state.history = []; saveHistory(); renderChatArea(); }});
+
+document.getElementById('exportBtn').addEventListener('click', ()=>{
+  const data = JSON.stringify(state.history, null, 2);
+  const blob = new Blob([data], {type:'application/json'}); const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = `neurax_history_${new Date().toISOString()}.json`; a.click(); URL.revokeObjectURL(url);
+});
+
+document.getElementById('importBtn').addEventListener('click', ()=>{
+  const inp = document.createElement('input'); inp.type='file'; inp.accept='application/json';
+  inp.onchange = e => { const f = e.target.files[0]; if(!f) return; const reader = new FileReader(); reader.onload = ev => { try{ const json = JSON.parse(ev.target.result); if(Array.isArray(json)){ state.history = json; saveHistory(); renderChatArea(); } else alert('Invalid file format'); } catch(err){ alert('Could not parse file'); } }; reader.readAsText(f); }; inp.click();
+});
+
+document.getElementById('themeToggle').addEventListener('click', ()=>{
+  const r = document.documentElement; if(r.classList.contains('dark')){ r.classList.remove('dark'); localStorage.setItem('neurax_theme','light'); } else { r.classList.add('dark'); localStorage.setItem('neurax_theme','dark'); }
+});
+
+document.getElementById('deleteLast').addEventListener('click', ()=>{ if(state.history.length){ state.history.pop(); saveHistory(); renderChatArea(); } });
+
+function setStatus(t){ document.getElementById('assistantStatus').textContent = t; }
+
+function initRecognition(){ if(!(window.SpeechRecognition || window.webkitSpeechRecognition)) return null; const r = new (window.SpeechRecognition || window.webkitSpeechRecognition)(); r.lang='en-US'; r.interimResults=false; r.maxAlternatives=1; r.onstart = ()=> setStatus('Listening...'); r.onerror = (e)=> { console.warn('Recognition error', e); setStatus('Recognition error'); }; r.onend = ()=> { if(state.listeningContinuous){ try{ r.start(); }catch(e){} } else { setStatus(state.voiceEnabled ? 'Voice enabled' : 'Voice disabled'); } }; r.onresult = (ev)=> { const t = ev.results[0][0].transcript; pushMessage('user', t); processUserMessage(t); }; return r; }
+
+function init(){
+  renderHistoryList(); renderChatArea();
+  if(localStorage.getItem('neurax_theme') === 'dark') document.documentElement.classList.add('dark');
+  if(state.history.length === 0) pushMessage('bot', "Hello! I'm NeuraX. Click 'Enable' to allow voice. Please write in English — I'll always reply in English. Try: 'What is DNS?' or 'Give me 3 tips to learn Python.'");
+}
+init();
+
+document.addEventListener('keydown', (e)=>{ if((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k'){ e.preventDefault(); document.getElementById('inputBox').focus(); } });
+</script>
+</body>
+</html>
